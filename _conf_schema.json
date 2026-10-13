@@ -1,0 +1,102 @@
+{
+    "enabled": {
+        "type": "bool",
+        "description": "启用插件",
+        "default": true
+    },
+    "intercept_query": {
+        "type": "bool",
+        "description": "转换原生单人查询",
+        "default": true
+    },
+    "theme": {
+        "type": "string",
+        "description": "卡片主题",
+        "default": "default",
+        "options": ["default"]
+    },
+    "character_name": {
+        "type": "string",
+        "description": "卡片角色名称",
+        "default": "清宵",
+        "hint": "1～40 字。"
+    },
+    "image_pool_enabled": {
+        "type": "bool",
+        "description": "启用角色图片随机池",
+        "default": true
+    },
+    "show_user_id": {
+        "type": "bool",
+        "description": "显示 QQ 号",
+        "default": false
+    },
+    "show_relationship": {
+        "type": "bool",
+        "description": "显示关系",
+        "default": true
+    },
+    "show_progress": {
+        "type": "bool",
+        "description": "显示阶段进度",
+        "default": true
+    },
+    "enable_level_quote": {
+        "type": "bool",
+        "description": "显示当前阶段随机台词",
+        "default": true
+    },
+    "image_pool_limit": {
+        "type": "int",
+        "description": "图片池容量",
+        "default": 50,
+        "hint": "范围 1～200，后端独立校验。"
+    },
+    "upload_max_mb": {
+        "type": "int",
+        "description": "原图及上传成品上限（MB）",
+        "default": 10,
+        "hint": "范围 1～20，后端独立校验。"
+    },
+    "upload_max_pixels": {
+        "type": "int",
+        "description": "原图最大像素总数",
+        "default": 24000000,
+        "hint": "范围 230400～40000000，后端独立校验。"
+    },
+    "empty_image_fallback": {
+        "type": "string",
+        "description": "图片池为空时的处理",
+        "default": "fallback",
+        "options": ["fallback", "hide"]
+    },
+    "empty_quote_fallback": {
+        "type": "string",
+        "description": "阶段台词为空时的处理",
+        "default": "hide",
+        "options": ["hide", "default"]
+    },
+    "default_quote": {
+        "type": "string",
+        "description": "台词池为空时的默认句",
+        "default": "",
+        "hint": "最多 120 字，仅 empty_quote_fallback=default 时使用。"
+    },
+    "allowed_groups": {
+        "type": "list",
+        "description": "允许生成卡片的群号（字符串列表，空表示不限；私聊不受此项限制）",
+        "default": []
+    },
+    "render_timeout_ms": {
+        "type": "int",
+        "description": "渲染超时（毫秒，含并发等待）",
+        "default": 10000,
+        "hint": "范围 1000～60000，后端独立校验。"
+    },
+    "render_concurrency": {
+        "type": "int",
+        "description": "渲染并发上限（修改后重载插件）",
+        "default": 2,
+        "hint": "范围 1～4，后端独立校验。"
+    }
+}

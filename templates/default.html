@@ -1,0 +1,217 @@
+<!doctype html>
+<html lang="zh-CN">
+    <head>
+        <meta charset="utf-8" />
+        <style>
+            * {
+                box-sizing: border-box;
+            }
+            html,
+            body {
+                margin: 0;
+                width: 960px;
+                height: 600px;
+                overflow: hidden;
+            }
+            body {
+                font-family:
+                    'HarmonyOS Sans', 'Noto Sans CJK SC', 'Microsoft YaHei', 'PingFang SC',
+                    sans-serif;
+                color: #e4ecf2;
+                background: #101c29;
+            }
+            .card {
+                position: relative;
+                display: flex;
+                width: 960px;
+                height: 600px;
+                background: radial-gradient(
+                    ellipse at 83% 12%,
+                    #304a58 0,
+                    #152638 45%,
+                    #101c29 85%
+                );
+            }
+            .art {
+                width: 384px;
+                height: 600px;
+                flex: none;
+                position: relative;
+                background: #142433;
+                border-right: 1px solid #577c824d;
+            }
+            .art img {
+                display: block;
+                width: 384px;
+                height: 600px;
+                object-fit: contain;
+            }
+            .art::after {
+                content: '';
+                position: absolute;
+                inset: 0;
+                box-shadow: inset -20px 0 40px #101c2944;
+                pointer-events: none;
+            }
+            .info {
+                flex: 1;
+                min-width: 0;
+                padding: 34px 38px 30px;
+            }
+            .eyebrow {
+                color: #83b8bb;
+                letter-spacing: 4px;
+                font-size: 11px;
+                margin-bottom: 17px;
+            }
+            .character {
+                font-size: 34px;
+                font-weight: 650;
+                letter-spacing: 3px;
+                margin: 0 0 7px;
+                white-space: nowrap;
+                overflow: hidden;
+                text-overflow: ellipsis;
+            }
+            .user {
+                color: #a8bccb;
+                font-size: 17px;
+                height: 42px;
+                overflow: hidden;
+                overflow-wrap: anywhere;
+            }
+            .user-name {
+                white-space: nowrap;
+                overflow: hidden;
+                text-overflow: ellipsis;
+            }
+            .user-id {
+                font-size: 11px;
+                margin-top: 4px;
+                color: #91a8b8;
+            }
+            .metric {
+                border-top: 1px solid #6d969d40;
+                padding-top: 21px;
+                margin-top: 12px;
+            }
+            .label {
+                font-size: 12px;
+                color: #9fb5c6;
+                letter-spacing: 2px;
+            }
+            .value {
+                font-size: 66px;
+                font-weight: 600;
+                line-height: 1.15;
+                color: #dbefec;
+                font-variant-numeric: tabular-nums;
+                margin: 4px 0 7px;
+                white-space: nowrap;
+            }
+            .stage {
+                display: flex;
+                align-items: baseline;
+                gap: 13px;
+                margin-bottom: 12px;
+            }
+            .stage-name {
+                font-size: 20px;
+                overflow: hidden;
+                text-overflow: ellipsis;
+                white-space: nowrap;
+                max-width: 290px;
+            }
+            .range {
+                font-size: 12px;
+                color: #a1b4c2;
+                white-space: nowrap;
+            }
+            .track {
+                height: 5px;
+                border-radius: 4px;
+                background: #728e9b36;
+                overflow: hidden;
+            }
+            .fill {
+                height: 100%;
+                background: linear-gradient(90deg, #6dacad, #b9dacf);
+            }
+            .next {
+                color: #98adb9;
+                font-size: 12px;
+                margin-top: 8px;
+            }
+            .relation {
+                margin-top: 22px;
+                color: #b4c9d2;
+                font-size: 14px;
+                overflow: hidden;
+                text-overflow: ellipsis;
+                white-space: nowrap;
+            }
+            .quote {
+                margin: 21px 0 0;
+                padding: 13px 17px;
+                background: #66838a14;
+                border-left: 2px solid #9bc7bd;
+                font-size: 17px;
+                color: #cce0dc;
+                line-height: 1.5;
+            }
+            .quote-text {
+                overflow-wrap: anywhere;
+                white-space: pre-wrap;
+                display: -webkit-box;
+                -webkit-box-orient: vertical;
+                -webkit-line-clamp: 3;
+                overflow: hidden;
+            }
+            .footer {
+                position: absolute;
+                right: 38px;
+                bottom: 20px;
+                color: #75949b;
+                font-size: 10px;
+                letter-spacing: 3px;
+            }
+        </style>
+    </head>
+    <body>
+        <main class="card">
+            {% if image_src %}
+            <div class="art"><img src="{{ image_src | e }}" alt="角色素材" /></div>
+            {% endif %}
+            <section class="info">
+                <div class="eyebrow">RELATIONSHIP PROFILE</div>
+                <h1 class="character">{{ character_name | e }}</h1>
+                <div class="user">
+                    <div class="user-name">{{ username | e }}</div>
+                    {% if show_user_id %}
+                    <div class="user-id">ID · {{ user_id | e }}</div>
+                    {% endif %}
+                </div>
+                <div class="metric">
+                    <div class="label">当前好感度</div>
+                    <div class="value">{{ favour }}</div>
+                </div>
+                <div class="stage">
+                    <span class="stage-name">{{ level.name | e }}</span
+                    ><span class="range">{{ level.range | e }}</span>
+                </div>
+                {% if show_progress %} {% if level.progress is not none %}
+                <div class="track">
+                    <div class="fill" style="width: {{ level.progress }}%"></div>
+                </div>
+                {% endif %}
+                <div class="next">{{ level.next_text | e }}</div>
+                {% endif %} {% if show_relationship %}
+                <div class="relation">当前关系 · {{ relationship | e }}</div>
+                {% endif %} {% if quote %}
+                <blockquote class="quote"><div class="quote-text">{{ quote | e }}</div></blockquote>
+                {% endif %}
+            </section>
+            <div class="footer">FAVOUR ARCHIVE</div>
+        </main>
+    </body>
+</html>

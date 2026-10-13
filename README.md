@@ -1,14 +1,135 @@
-# astrbot-plugin-helloworld
+<h1 align="center">Favour Ultra 好感度卡片</h1>
+<p align="center">为 Favour Ultra 的授权单人查询生成随机角色图片与阶段台词卡片。</p>
+<p align="center">
+  <a href="./CHANGELOG.md"><img src="https://img.shields.io/badge/version-1.0.0-blue" alt="Version 1.0.0"></a>
+  <a href="./LICENSE"><img src="https://img.shields.io/badge/license-AGPL--3.0-green" alt="AGPL-3.0"></a>
+</p>
+<p align="center"><a href="#quick-start">快速开始</a> · <a href="#usage">使用方法</a> · <a href="#configuration">配置</a> · <a href="#management">管理页面</a></p>
 
-AstrBot 插件模板 / A template plugin for AstrBot plugin feature
+本插件与原版 Favour Ultra 一起使用。好感度、关系、权限及排行榜继续由原插件处理；本插件维护自己的素材与台词，只转换正常的单人查询回复。
 
-> [!NOTE]
-> This repo is just a template of [AstrBot](https://github.com/AstrBotDevs/AstrBot) Plugin.
-> 
-> [AstrBot](https://github.com/AstrBotDevs/AstrBot) is an agentic assistant for both personal and group conversations. It can be deployed across dozens of mainstream instant messaging platforms, including QQ, Telegram, Feishu, DingTalk, Slack, LINE, Discord, Matrix, etc. In addition, it provides a reliable and extensible conversational AI infrastructure for individuals, developers, and teams. Whether you need a personal AI companion, an intelligent customer support agent, an automation assistant, or an enterprise knowledge base, AstrBot enables you to quickly build AI applications directly within your existing messaging workflows.
+## 功能
 
-# Supports
+| 能力       | 说明                                                                          |
+| ---------- | ----------------------------------------------------------------------------- |
+| PNG 卡片   | 960 × 600，《鸣潮》风格的单套深蓝灰模板；显示昵称、数值、等级、关系与阶段进度 |
+| 随机图片池 | 每次从启用图片中等概率抽取，图片与台词分别抽取，允许连续重复                  |
+| 人工裁剪   | 超出 384 × 600 槽位时，固定框内拖动/缩放，确认后才上传成品                    |
+| 阶段多台词 | 新增、编辑、删除、启停、排序、按行批量添加；只抽取当前阶段                    |
+| 保留原文   | 格式不符、原生拒绝、依赖停用或渲染失败时，不生成虚假结果                      |
 
-- [AstrBot Repo](https://github.com/AstrBotDevs/AstrBot)
-- [AstrBot Plugin Development Docs (Chinese)](https://docs.astrbot.app/dev/star/plugin-new.html)
-- [AstrBot Plugin Development Docs (English)](https://docs.astrbot.app/en/dev/star/plugin-new.html)
+<a id="quick-start"></a>
+
+## 快速开始
+
+当前兼容目标为 **AstrBot >= 4.28.0、< 4.29.0 + Favour Ultra + aiocqhttp（QQ / NapCat OneBot v11）**。已核对 AstrBot 4.28.0 和 Favour Ultra 4.4.7 的公开源码接口；真实 Dashboard、QQ 收发与高并发部署验收尚未完成。
+
+1. 安装并启用原版 [Favour Ultra](https://github.com/nuomicici/astrbot_plugin_Favour_Ultra)，确认它的单人查询正常。
+2. 使用 AstrBot 插件管理的仓库安装入口，填入本仓库地址；也可手动安装。本项目未宣称已上架插件市场。
+3. 默认使用 AstrBot 官方文转图服务，无需额外部署。需要自定义服务时，在 AstrBot 配置中设置 `t2i_endpoint` 并重启宿主；可参考 [自部署文转图说明](https://docs.astrbot.app/others/self-host-t2i.html)。
+4. 打开插件详情的「好感度卡片管理」视图，上传图片、按阶段保存台词，点击模拟预览。
+5. 在 QQ 发送 `/查询好感度`，正常情况下收到一张卡片；无法生成时仍收到原生文字。
+
+**文转图服务：** 本插件直接复用 AstrBot 的渲染服务和端点配置，不额外限制端点，也不覆盖已有自定义设置。未自设端点时使用官方服务；渲染失败或超时时保留原文。渲染请求包含卡片数据与图片素材，发送给当前使用的官方或自定义服务。
+
+<details>
+<summary>手动安装</summary>
+
+```bash
+cd /你的/AstrBot/data/plugins
+git clone https://github.com/conFess233/astrbot_plugin_favour_card.git
+cd astrbot_plugin_favour_card
+python -m pip install -r requirements.txt
+```
+
+在 AstrBot 实际使用的 Python 环境执行，并在插件管理页重载。容器部署按实际数据挂载目录调整路径。
+
+</details>
+
+<a id="usage"></a>
+
+## 使用方法
+
+| Favour Ultra 原生命令                                | 结果                               |
+| ---------------------------------------------------- | ---------------------------------- |
+| `/查询好感度`                                        | 查询自己，成功文本转换为卡片       |
+| `/查询好感度 @某人`                                  | 由原插件判断权限后显示目标用户卡片 |
+| `/查好感度`、`/好感度查询`、`/查看好感度`、`/好感度` | 使用当前原插件实际注册且启用的别名 |
+
+前缀、命令改名、别名和 @ 参数由 AstrBot 原有指令匹配处理，本插件不额外注册同名指令。群聊/私聊查询开关、查询他人的权限和冷暴力拒绝由 Favour Ultra 控制；排行榜保持原有回复。
+
+等级读取已启用 Favour Ultra 实例的当前配置，不读取它的数据库。范围按整数闭区间计算；最高阶段显示 100%，等级空档或非法/重叠配置显示未定义等级，不推测阶段。
+
+<a id="configuration"></a>
+
+## 配置
+
+在 AstrBot 插件配置页修改基础设置。图片、台词通过专属管理页维护。配置保存到宿主后以实际重载行为生效；图片与台词保存后下一次查询生效。
+
+| 配置键                 | 默认值     | 范围与作用                                                           |
+| ---------------------- | ---------- | -------------------------------------------------------------------- |
+| `enabled`              | `true`     | 启用卡片功能                                                         |
+| `intercept_query`      | `true`     | 替换正常单人查询结果                                                 |
+| `theme`                | `default`  | V1 仅此模板                                                          |
+| `character_name`       | `角色名`   | 1～40 字，角色名称                                                   |
+| `image_pool_enabled`   | `true`     | 使用随机图池；关闭时使用空池兜底                                     |
+| `show_user_id`         | `false`    | 显示 QQ 号                                                           |
+| `show_relationship`    | `true`     | 显示原生关系文本（包含唯一标记）                                     |
+| `show_progress`        | `true`     | 显示阶段进度与下阶段距离                                             |
+| `enable_level_quote`   | `true`     | 显示当前阶段台词；关闭时隐藏                                         |
+| `image_pool_limit`     | `50`       | 1～200 张；降低上限不删除已有图片，仅限制新增                        |
+| `upload_max_mb`        | `10`       | 1～20 MB，原图浏览器检查及上传成品后端检查                           |
+| `upload_max_pixels`    | `24000000` | 230400～40000000，浏览器解码前检查原图像素；后端成品固定为 384 × 600 |
+| `empty_image_fallback` | `fallback` | `fallback` 使用自带中性占位图；`hide` 隐藏立绘                       |
+| `empty_quote_fallback` | `hide`     | `hide` 隐藏台词；`default` 使用 `default_quote`                      |
+| `default_quote`        | `""`       | 最多 120 字，仅默认句模式使用；不会借用其他阶段台词                  |
+| `allowed_groups`       | `[]`       | 群号字符串列表；空列表不限群，私聊不受此项限制，原插件权限仍适用     |
+| `render_timeout_ms`    | `10000`    | 1000～60000 毫秒，包含排队等待，超时保留原文                         |
+| `render_concurrency`   | `2`        | 1～4，修改后重载插件                                                 |
+
+人工裁剪确认与失败保留原文是固定行为，不提供关闭它们的配置。本插件不提供自己的会话配置覆盖。
+
+<a id="management"></a>
+
+## 管理页面
+
+入口为 AstrBot 插件页 → 本插件详情 → 好感度卡片管理。仅已登录的 Dashboard 管理账户可以读写；Bot 管理员 QQ 号不等于网页管理身份，普通群成员发送图片不会自动入池。
+
+**图片池：** 选择一张或多张静态 JPG、PNG、WebP。任一边超出槽位都会逐张打开裁剪窗口，固定 16:25 比例，拖动或方向键移动构图、滑块缩放；确认后才上传 384 × 600 PNG 成品。小图默认完整留白适配，也可主动裁剪。取消不上传，原图不保存在服务器。重复成品不会新增条目。上传后尝试展示实际卡片预览，服务不可用时保留已入池图片并提示预览失败。
+
+页面提供操作通知、按钮加载状态和并发进度反馈；成功通知约 4 秒后收起，悬停或键盘聚焦时暂停；失败通知可手动关闭且字段旁保留错误。窄屏只展示最新通知，减少遮挡。取消确认不会提示成功。标签页、弹窗与列表使用轻量动效，并遵循系统“减少动态效果”设置。
+
+**阶段台词：** 编辑后点击「保存此阶段」生效。切换标签保留草稿，保存失败保留输入。每条 1～120 字，每阶段最多 500 条。排序只改变管理列表顺序，不改变抽取概率。保存版本冲突时保留输入，请复制草稿后刷新并合并。
+
+阶段键优先采用稳定 ID，否则采用 `min:max`。改名/改阈值时旧台词保留；同键阶段需确认重新保存，不同键可从旧阶段载入目标草稿并确认迁移。旧条目继续保留用于恢复。预览使用已保存配置、素材与台词及模拟数据，不代表真实用户好感度。
+
+## 数据与安全
+
+运行数据使用宿主路径工具定位，典型目录为：
+
+```text
+data/plugin_data/astrbot_plugin_favour_card/
+├── images/             # 随机 ID 命名的裁剪成品，不含上传原图
+├── image_pool.json     # 图片清单、启用状态、尺寸、哈希与模板
+└── quote_pools.json    # 阶段台词、版本及保留的旧阶段
+```
+
+停用插件后复制整个目录即可备份，恢复时同样复制整个目录。升级插件源码不会覆盖此目录；不要只恢复清单而遗漏图片文件。
+
+写入采用同目录临时文件与原子替换，失败保留原清单。损坏或不受支持的清单会报错，不自动重建。删除图片不可恢复，需要确认。后端校验身份、参数、真实图片格式、单帧、大小和固定尺寸，重新编码 PNG 去除原始元数据。官方管理页保证原图人工确认流程；服务端校验成品规格，不把客户端标记当作人工操作证明。
+
+不额外保存查询记录，不访问 Favour Ultra 数据库，不调用 LLM。昵称、关系和台词在 HTML 中转义。图片内嵌 Data URL，不请求外部素材或字体；渲染请求会把卡片数据和素材发给当前使用的官方或自定义文转图服务。
+
+## 更新记录
+
+[CHANGELOG.md](./CHANGELOG.md)
+
+## 致谢与来源
+
+- [Favour Ultra](https://github.com/nuomicici/astrbot_plugin_Favour_Ultra)：运行依赖，查询格式与阶段结构的接口依据；未复制其实现，未修改其源码或数据库。
+- [AstrBot](https://github.com/AstrBotDevs/AstrBot)：宿主，复用事件、认证 bridge 与 HTML 渲染能力；项目由官方插件模板开始开发。
+- 页面接口依据 [Plugin Views 官方指南](https://docs.astrbot.app/dev/star/guides/plugin-pages.html)，渲染依据 [HTML 转图片指南](https://docs.astrbot.app/en/dev/star/guides/html-to-pic.html)。
+
+## License
+
+本项目按仓库现有的 [AGPL-3.0](./LICENSE) 许可证分发。自带占位图由本项目生成，不包含第三方角色立绘。
