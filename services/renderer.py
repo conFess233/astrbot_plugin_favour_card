@@ -34,10 +34,10 @@ class CardRenderer:
         )
 
     def _build_data(
-        self, record, levels: list, settings: dict, preview_image=None
+        self, record, levels: list, settings: dict, preview_image=None, is_preview=False
     ) -> dict:
         level = resolve_level(record.favour, levels)
-        content = self.storage.pick_content(settings, level)
+        content = self.storage.pick_content(settings, level, levels)
         if preview_image:
             content["image_src"] = self.storage.image_src(preview_image)
         if not content["image_src"] and settings["empty_image_fallback"] == "fallback":
@@ -48,17 +48,24 @@ class CardRenderer:
             "favour": record.favour,
             "relationship": record.relationship,
             "level": level,
+            "is_preview": is_preview,
             **settings,
             **content,
         }
 
     async def render(
-        self, record, levels: list, settings: dict, preview_image=None
+        self,
+        record,
+        levels: list,
+        settings: dict,
+        preview_image=None,
+        *,
+        is_preview=False,
     ) -> bytes:
         if self.closed:
             raise ValueError("插件正在停用，请稍后重试。")
         task = asyncio.create_task(
-            self._render(record, levels, settings, preview_image)
+            self._render(record, levels, settings, preview_image, is_preview)
         )
         self.tasks.add(task)
         try:
@@ -66,10 +73,12 @@ class CardRenderer:
         finally:
             self.tasks.discard(task)
 
-    async def _render(self, record, levels, settings, preview_image) -> bytes:
+    async def _render(
+        self, record, levels, settings, preview_image, is_preview
+    ) -> bytes:
         async with self.slots:
             data = await asyncio.to_thread(
-                self._build_data, record, levels, settings, preview_image
+                self._build_data, record, levels, settings, preview_image, is_preview
             )
             # PNG 不支持 quality；覆盖宿主 JPEG 默认参数。
             path = await self.plugin.html_render(

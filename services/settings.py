@@ -4,7 +4,7 @@ DEFAULTS = {
     "enabled": True,
     "intercept_query": True,
     "theme": "default",
-    "character_name": "角色名称",
+    "character_name": "角色名",
     "image_pool_enabled": True,
     "show_user_id": False,
     "show_relationship": True,

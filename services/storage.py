@@ -15,6 +15,7 @@ from pathlib import Path
 
 from PIL import Image, UnidentifiedImageError
 
+from .domain import STAGE_PRESETS
 from .settings import SLOT
 
 
@@ -200,9 +201,34 @@ class PoolStorage:
                 )
             return self._image_cache[image_id]
 
-    def quote_pools(self) -> dict:
+    def quote_pools(self, levels=()) -> dict:
         with self.lock:
-            return self._load("quote_pools.json", "stages")
+            data = self._load("quote_pools.json", "stages")
+            configured_names = {
+                stage["display_name"] for stage in data["stages"].values()
+            }
+            for level in levels:
+                if level.key in data["stages"] or level.name in configured_names:
+                    continue
+                preset = STAGE_PRESETS.get(level.name)
+                if preset is None:
+                    continue
+                text = preset[1]
+                data["stages"][level.key] = {
+                    "display_name": level.name,
+                    "min": level.minimum,
+                    "max": level.maximum,
+                    "quotes": [
+                        {
+                            "id": uuid.uuid5(
+                                uuid.NAMESPACE_URL, f"favour-card:{level.key}:{text}"
+                            ).hex,
+                            "text": text,
+                            "enabled": True,
+                        }
+                    ],
+                }
+            return data
 
     def save_quotes(self, payload: dict, levels: list) -> dict:
         key = payload.get("key")
@@ -270,7 +296,7 @@ class PoolStorage:
             self._save("quote_pools.json", data)
             return data
 
-    def pick_content(self, settings: dict, level: dict) -> dict:
+    def pick_content(self, settings: dict, level: dict, levels=()) -> dict:
         """两次独立抽取；不缓存最终卡片，不混用其他阶段的台词。"""
         with self.lock:
             images = (
@@ -285,7 +311,7 @@ class PoolStorage:
                 else []
             )
             image = random.choice(images) if images else None
-            stage = self.quote_pools()["stages"].get(level["key"], {})
+            stage = self.quote_pools(levels)["stages"].get(level["key"], {})
             # 稳定 ID 的阈值或名称变动也需要管理员确认，之前不使用旧文案。
             stage_matches = stage.get("display_name") == level["name"] and (
                 level["range"] == f"{stage.get('min')}～{stage.get('max')}"

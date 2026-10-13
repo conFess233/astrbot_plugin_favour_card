@@ -4,6 +4,15 @@ import re
 from dataclasses import dataclass
 from itertools import pairwise
 
+STAGE_PRESETS = {
+    "极度厌恶": ("#8d3b44", "你我之间，无话可说。"),
+    "反感": ("#797184", "还是保持些距离吧。"),
+    "普通": ("#617c84", "有何事？"),
+    "喜欢": ("#71b3b3", "若有闲暇，我愿听你说说。"),
+    "亲密": ("#2f8f87", "与你相处，倒也自在。"),
+    "挚爱": ("#d6b76e", "我既认定了你，便不会轻易改变。"),
+}
+
 
 @dataclass(frozen=True)
 class FavourRecord:
@@ -19,6 +28,7 @@ class Level:
     name: str
     minimum: int
     maximum: int
+    color: str = "#111111"
 
 
 RESULT_PATTERN = re.compile(
@@ -61,7 +71,8 @@ def parse_levels(raw: object) -> list[Level]:
         if key in keys:
             raise ValueError("等级键重复。")
         keys.add(key)
-        levels.append(Level(key, name, low, high))
+        color = STAGE_PRESETS.get(name, ("#111111", ""))[0]
+        levels.append(Level(key, name, low, high, color))
     levels.sort(key=lambda level: level.minimum)
     if any(a.maximum >= b.minimum for a, b in pairwise(levels)):
         raise ValueError("等级范围重叠，请先修正 Favour Ultra 配置。")
@@ -81,6 +92,7 @@ def resolve_level(favour: int, levels: list[Level]) -> dict:
             return {
                 "key": level.key,
                 "name": level.name,
+                "color": level.color,
                 "range": f"{level.minimum}～{level.maximum}",
                 "progress": round(progress * 100),
                 "next_text": "已达到最高阶段"
@@ -90,6 +102,7 @@ def resolve_level(favour: int, levels: list[Level]) -> dict:
     return {
         "key": None,
         "name": "未定义等级",
+        "color": "#111111",
         "range": "",
         "progress": None,
         "next_text": "当前数值未匹配已定义阶段",

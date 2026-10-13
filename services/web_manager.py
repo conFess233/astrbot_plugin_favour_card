@@ -114,7 +114,7 @@ class WebManager:
 
     async def quotes_list(self) -> dict:
         levels, warning = self.plugin.bridge.levels()
-        pools = await asyncio.to_thread(self.storage.quote_pools)
+        pools = await asyncio.to_thread(self.storage.quote_pools, levels)
         active_keys = {level.key for level in levels}
         return {
             **pools,
@@ -147,6 +147,7 @@ class WebManager:
             levels,
             self.plugin.settings(),
             preview_image=request.query.get("image_id"),
+            is_preview=True,
         )
         return {
             "src": "data:image/png;base64," + base64.b64encode(content).decode("ascii"),
