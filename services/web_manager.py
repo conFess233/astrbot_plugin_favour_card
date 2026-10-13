@@ -2,13 +2,17 @@
 
 import asyncio
 import base64
+import copy
+import hashlib
+import json
 from dataclasses import asdict
+from pathlib import Path
 
 from astrbot.api import logger
 from astrbot.api.web import PluginUploadFile, error_response, json_response, request
 
 from .domain import FavourRecord
-from .settings import SLOT
+from .settings import BOUNDS, DEFAULTS, SLOT, settings_snapshot
 
 PLUGIN_NAME = "astrbot_plugin_favour_card"
 
@@ -18,9 +22,12 @@ class WebManager:
         self.plugin = plugin
         self.storage = plugin.storage
         self.upload_slots = asyncio.Semaphore(2)
+        self.settings_lock = asyncio.Lock()
 
     def register(self) -> None:
         routes = (
+            ("settings/get", self.settings_get, "GET"),
+            ("settings/save", self.settings_save, "POST"),
             ("images/list", self.images_list, "GET"),
             ("images/upload", self.images_upload, "POST"),
             ("images/update", self.images_update, "POST"),
@@ -69,6 +76,51 @@ class WebManager:
         if not isinstance(payload, dict):
             raise TypeError("请求必须是 JSON 对象。")
         return payload
+
+    def _settings_state(self) -> dict:
+        values = self.plugin.settings()
+        revision = hashlib.sha256(
+            json.dumps(values, sort_keys=True).encode()
+        ).hexdigest()
+        return {
+            "values": values,
+            "revision": revision,
+            "requires_reload": values["render_concurrency"]
+            != self.plugin.renderer.concurrency,
+        }
+
+    async def settings_get(self) -> dict:
+        schema = await asyncio.to_thread(
+            lambda: json.loads(
+                (
+                    Path(__file__).resolve().parent.parent / "_conf_schema.json"
+                ).read_text(encoding="utf-8")
+            )
+        )
+        for key, (low, high) in BOUNDS.items():
+            schema[key].update({"minimum": low, "maximum": high})
+        schema["initialize_only_if_missing"]["read_only"] = True
+        return {**self._settings_state(), "schema": schema}
+
+    async def settings_save(self) -> dict:
+        payload = await self._payload()
+        values = payload.get("values")
+        if not isinstance(values, dict) or set(values) != set(DEFAULTS):
+            raise ValueError("请提交完整的插件配置，不能包含未知字段。")
+        validated = settings_snapshot(values)
+        async with self.settings_lock:
+            state = self._settings_state()
+            if payload.get("revision") != state["revision"]:
+                raise ValueError("配置已被其他页面修改；请保留草稿，刷新后合并。")
+            old = copy.deepcopy(dict(self.plugin.config))
+            self.plugin.config.update(validated)
+            try:
+                await asyncio.to_thread(self.plugin.config.save_config)
+            except BaseException:
+                self.plugin.config.clear()
+                self.plugin.config.update(old)
+                raise
+            return self._settings_state()
 
     async def images_list(self) -> dict:
         settings = self.plugin.settings()

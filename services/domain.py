@@ -14,6 +14,13 @@ STAGE_PRESETS = {
 }
 
 
+def validate_color(value: object) -> str:
+    """颜色限定六位 HEX，避免把任意 CSS 带入渲染模板。"""
+    if not isinstance(value, str) or not re.fullmatch(r"#[0-9a-fA-F]{6}", value):
+        raise ValueError("阶段颜色必须是 #RRGGBB 格式，例如 #2f8f87。")
+    return value.lower()
+
+
 @dataclass(frozen=True)
 class FavourRecord:
     username: str

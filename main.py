@@ -55,7 +55,7 @@ class FavourCard(Star):
             return
         try:
             settings = self.settings()
-            if not settings["enabled"] or not settings["intercept_query"]:
+            if not settings["enabled"]:
                 return
             groups = settings["allowed_groups"]
             group_id = str(event.get_group_id() or "")
@@ -65,6 +65,13 @@ class FavourCard(Star):
             original_text = original.text
             record = parse_favour_result(original_text)
             if record is None or not self.bridge.value_in_range(record.favour):
+                return
+            record, missing = await self.bridge.prepare_query_record(
+                event, record, settings
+            )
+            if not settings["intercept_query"] or (
+                missing and not settings["show_initial_favour_card"]
+            ):
                 return
             levels, _ = self.bridge.levels()
             content = await self.renderer.render(record, levels, settings)

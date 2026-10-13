@@ -31,19 +31,6 @@
         background: #f3f5f6;
       }
       .art img { display: block; width: 100%; height: 100%; object-fit: contain; }
-      .art-badge {
-        position: absolute;
-        top: 14px;
-        right: 14px;
-        display: grid;
-        place-items: center;
-        width: 44px;
-        height: 44px;
-        color: white;
-        background: #626462;
-        border-radius: 50%;
-      }
-      .art-badge svg { width: 23px; height: 23px; }
       .info { position: relative; flex: 1; min-width: 0; height: 540px; padding-top: 2px; }
       .eyebrow { color: #919191; font-size: 11px; letter-spacing: .7px; margin-bottom: 8px; }
       .character {
@@ -60,7 +47,7 @@
       .metrics { position: absolute; top: 40%; left: 0; right: 0; }
       .label { color: #626262; font-size: 14px; }
       .value { margin: 9px 0 13px; font-size: 32px; font-weight: 700; line-height: 1.2; font-variant-numeric: tabular-nums; white-space: nowrap; }
-      .value, .stage-name { color: #111; color: color-mix(in srgb, var(--stage-color) 50%, #111); }
+      .value, .stage-name { color: var(--stage-color, #111); }
       .stage { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin-bottom: 9px; }
       .stage-name { min-width: 0; font-size: 17px; font-weight: 650; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
       .range { flex-shrink: 0; color: #666; font-size: 12px; }
@@ -81,11 +68,6 @@
         {% if image_src %}
         <div class="art">
           <img src="{{ image_src | e }}" alt="角色素材" />
-          <span class="art-badge" aria-hidden="true">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round">
-              <path d="M7 3h10a2 2 0 0 1 2 2v15a1 1 0 0 1-1.5.86L12 18l-5.5 2.86A1 1 0 0 1 5 20V5a2 2 0 0 1 2-2Z" />
-            </svg>
-          </span>
         </div>
         {% endif %}
         <section class="info" style="--stage-color: {{ level.color | default('#111111') | e }}">

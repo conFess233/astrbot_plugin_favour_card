@@ -23,7 +23,8 @@
       </section>
       <div class="tab-list" role="tablist" aria-label="素材管理">
         <button id="images-tab" type="button" role="tab" aria-selected="true" aria-controls="images-panel">图片池</button>
-        <button id="quotes-tab" type="button" role="tab" aria-selected="false" aria-controls="quotes-panel" tabindex="-1">阶段台词</button>
+        <button id="quotes-tab" type="button" role="tab" aria-selected="false" aria-controls="quotes-panel" tabindex="-1">阶段设置</button>
+        <button id="settings-tab" type="button" role="tab" aria-selected="false" aria-controls="settings-panel" tabindex="-1">插件配置</button>
       </div>
       <section id="images-panel" class="section-card" role="tabpanel" aria-labelledby="images-tab">
         <div class="section-heading"><div><h2>角色图片池 <span id="image-count" class="badge"></span></h2><p id="image-limits" class="muted">正在读取上传要求…</p></div><button id="upload" class="primary" type="button">上传图片</button></div>
@@ -37,10 +38,19 @@
         </div>
       </section>
       <section id="quotes-panel" class="section-card" role="tabpanel" aria-labelledby="quotes-tab" hidden>
-        <div class="section-heading"><div><h2>阶段台词</h2><p class="muted">等级来自已启用的 Favour Ultra。每次只抽取当前阶段的启用台词。</p></div><span id="draft-count" class="badge">已保存</span></div>
+        <div class="section-heading"><div><h2>阶段颜色与台词</h2><p class="muted">等级来自已启用的 Favour Ultra。颜色与台词按阶段保存，每次只抽取当前阶段的启用台词。</p></div><span id="draft-count" class="badge">已保存</span></div>
         <p id="quote-warning" class="notice" hidden></p>
         <div id="quote-list"></div>
         <section id="orphan-section" hidden><h3>需要确认的旧阶段</h3><p class="muted">原台词完整保留。选择迁移目标后会载入草稿，确认保存才写入，旧阶段仍保留。</p><div id="orphan-list"></div></section>
+      </section>
+      <section id="settings-panel" class="section-card" role="tabpanel" aria-labelledby="settings-tab" hidden>
+        <div class="section-heading"><div><h2>插件配置</h2><p class="muted">全部插件配置项可在此编辑，保存到 AstrBot 配置；预览使用已保存值。</p></div><span id="settings-dirty" class="badge">已保存</span></div>
+        <form id="settings-form">
+          <div id="settings-fields" class="settings-grid"></div>
+          <p id="settings-error" class="error" role="alert"></p>
+          <p id="settings-reload" class="notice" hidden>渲染并发上限已保存，请在插件管理中重载插件后生效。</p>
+          <div class="stage-actions"><button id="settings-save" class="primary" type="submit" disabled>保存插件配置</button><button id="settings-discard" type="button" disabled>放弃配置修改</button></div>
+        </form>
       </section>
       <footer class="muted footer">好感度和权限仍由 Favour Ultra 管理 · 卡片生成失败时保留原生文字</footer>
     </main>

@@ -15,7 +15,7 @@ from pathlib import Path
 
 from PIL import Image, UnidentifiedImageError
 
-from .domain import STAGE_PRESETS
+from .domain import STAGE_PRESETS, validate_color
 from .settings import SLOT
 
 
@@ -216,6 +216,7 @@ class PoolStorage:
                 text = preset[1]
                 data["stages"][level.key] = {
                     "display_name": level.name,
+                    "color": level.color,
                     "min": level.minimum,
                     "max": level.maximum,
                     "quotes": [
@@ -269,6 +270,9 @@ class PoolStorage:
             if revision != data["revision"]:
                 raise ValueError("台词已被其他页面修改；请保留草稿，刷新后重新合并。")
             previous = data["stages"].get(key)
+            color = validate_color(
+                payload.get("color", (previous or {}).get("color", level.color))
+            )
             if (
                 previous
                 and (
@@ -289,6 +293,7 @@ class PoolStorage:
                 # 原阶段保留，可恢复原文；目标修改只在确认后发生。
             data["stages"][key] = {
                 "display_name": level.name,
+                "color": color,
                 "min": level.minimum,
                 "max": level.maximum,
                 "quotes": quotes,
@@ -333,6 +338,9 @@ class PoolStorage:
                 else ""
             )
             return {
+                "stage_color": validate_color(stage.get("color", level["color"]))
+                if stage_matches
+                else level["color"],
                 "image_id": image["id"] if image else None,
                 "image_src": self.image_src(image["id"]) if image else "",
                 "quote_id": quote["id"] if quote else None,

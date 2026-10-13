@@ -15,7 +15,8 @@ class CardRenderer:
     def __init__(self, plugin, storage, settings: dict):
         self.plugin = plugin
         self.storage = storage
-        self.slots = asyncio.Semaphore(settings["render_concurrency"])
+        self.concurrency = settings["render_concurrency"]
+        self.slots = asyncio.Semaphore(self.concurrency)
         self.tasks: set[asyncio.Task] = set()
         self.closed = False
         self.template = ""
@@ -38,6 +39,7 @@ class CardRenderer:
     ) -> dict:
         level = resolve_level(record.favour, levels)
         content = self.storage.pick_content(settings, level, levels)
+        level["color"] = content.pop("stage_color", level["color"])
         if preview_image:
             content["image_src"] = self.storage.image_src(preview_image)
         if not content["image_src"] and settings["empty_image_fallback"] == "fallback":

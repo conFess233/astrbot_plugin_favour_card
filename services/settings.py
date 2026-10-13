@@ -3,6 +3,9 @@
 DEFAULTS = {
     "enabled": True,
     "intercept_query": True,
+    "show_initial_favour_card": True,
+    "auto_initialize_on_query": True,
+    "initialize_only_if_missing": True,
     "theme": "default",
     "character_name": "角色名",
     "image_pool_enabled": True,
@@ -41,6 +44,10 @@ def settings_snapshot(config: dict) -> dict:
             low, high = BOUNDS[key]
             if type(value) is not int or not low <= value <= high:
                 raise ValueError(f"{key} 必须在 {low}～{high} 之间。")
+    if not result["initialize_only_if_missing"]:
+        raise ValueError(
+            "initialize_only_if_missing 必须开启，初始化不能覆盖已有记录。"
+        )
     for key, limit in (("character_name", 40), ("default_quote", 120)):
         if not isinstance(result[key], str) or len(result[key]) > limit:
             raise ValueError(f"{key} 必须是最多 {limit} 字的文本。")

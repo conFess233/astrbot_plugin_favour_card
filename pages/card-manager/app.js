@@ -4,6 +4,10 @@ const byId = (id) => document.getElementById(id);
 const bridge = window.AstrBotPluginPage ?? window.AstrBotPluginView;
 let images = null;
 let quotes = null;
+let settings = null;
+let settingsDraft = null;
+let settingsDirty = false;
+let settingsSaving = false;
 const drafts = new Map();
 let uploading = false;
 let pendingTasks = 0;
@@ -101,20 +105,85 @@ async function confirmAction(title, text) {
 function updateDirty() {
   const count = [...drafts.values()].filter((draft) => draft.dirty).length;
   byId("draft-count").textContent = count ? `${count} 个阶段未保存` : "已保存";
+  byId("settings-dirty").textContent = settingsDirty ? "未保存" : "已保存";
+  byId("settings-save").disabled = !settingsDirty || settingsSaving;
+  byId("settings-discard").disabled = !settingsDirty || settingsSaving;
+}
+
+function hasDirtyDrafts() {
+  return settingsDirty || [...drafts.values()].some((draft) => draft.dirty);
+}
+
+function renderSettings() {
+  byId("settings-reload").hidden = !settings.requires_reload;
+  const fields = byId("settings-fields");
+  fields.replaceChildren();
+  for (const [key, field] of Object.entries(settings.schema)) {
+    const wrapper = element("div", undefined, "settings-field");
+    const label = element("label", field.description);
+    label.htmlFor = `config-${key}`;
+    let input;
+    if (field.options) {
+      input = element("select");
+      for (const value of field.options) {
+        const labels = key === "theme" ? { default: "默认卡片" } : { fallback: "占位图", hide: "隐藏", default: "默认台词" };
+        const option = element("option", labels[value] ?? value);
+        option.value = value;
+        input.append(option);
+      }
+      input.value = settingsDraft[key];
+    } else if (field.type === "bool") {
+      input = element("input");
+      input.type = "checkbox";
+      input.checked = settingsDraft[key];
+    } else if (field.type === "list" || key === "default_quote") {
+      input = element("textarea");
+      input.rows = 3;
+      input.value = field.type === "list" ? settingsDraft[key].join("\n") : settingsDraft[key];
+      if (key === "default_quote") input.maxLength = 120;
+    } else {
+      input = element("input");
+      input.type = field.type === "int" ? "number" : "text";
+      input.value = settingsDraft[key];
+      if (field.type === "int") {
+        input.step = "1";
+        input.required = true;
+        input.min = field.minimum;
+        input.max = field.maximum;
+      }
+      if (key === "character_name") { input.maxLength = 40; input.required = true; }
+    }
+    input.id = label.htmlFor;
+    input.disabled = Boolean(field.read_only);
+    input.dataset.configKey = key;
+    input.addEventListener("input", () => {
+      settingsDraft[key] = field.type === "bool" ? input.checked : field.type === "int" ? Number(input.value) : field.type === "list" ? input.value.split(/[\n,，]/).map((group) => group.trim()).filter(Boolean) : input.value;
+      settingsDirty = true;
+      updateDirty();
+    });
+    wrapper.append(label, input);
+    if (field.hint) wrapper.append(element("p", field.hint, "muted"));
+    if (field.type === "list") wrapper.append(element("p", "群号每行一个或以逗号分隔；留空表示不限群。", "muted"));
+    fields.append(wrapper);
+  }
 }
 
 async function refreshAll() {
   byId("image-list").setAttribute("aria-busy", "true");
   byId("quote-list").setAttribute("aria-busy", "true");
   try {
-    const [nextImages, nextQuotes] = await Promise.all([
-      bridge.apiGet("images/list"), bridge.apiGet("quotes/list"),
+    const [nextImages, nextQuotes, nextSettings] = await Promise.all([
+      bridge.apiGet("images/list"), bridge.apiGet("quotes/list"), bridge.apiGet("settings/get"),
     ]);
     images = nextImages;
     quotes = nextQuotes;
+    settings = nextSettings;
+    settingsDraft = structuredClone(settings.values);
+    settingsDirty = false;
     drafts.clear();
     renderImages();
     renderQuotes();
+    renderSettings();
     updateDirty();
   } catch (error) {
     if (!images) byId("image-list").replaceChildren(element("p", "图片列表加载失败，请点击顶部刷新重试。", "empty-state"));
@@ -180,7 +249,7 @@ async function preview(imageId) {
 function getDraft(level) {
   if (!drafts.has(level.key)) {
     const saved = quotes.stages[level.key];
-    drafts.set(level.key, { quotes: structuredClone(saved?.quotes ?? []), bulk: "", dirty: false, migrateFrom: null });
+    drafts.set(level.key, { quotes: structuredClone(saved?.quotes ?? []), color: saved?.color ?? level.color ?? "#111111", bulk: "", dirty: false, migrateFrom: null });
   }
   return drafts.get(level.key);
 }
@@ -226,6 +295,7 @@ function renderQuotes() {
       if (!await confirmAction("载入旧阶段台词", `将 ${saved.display_name} 的 ${saved.quotes.length} 条台词载入 ${target.name} 草稿，替换该目标当前草稿。原阶段保留，需再次确认保存才生效。`)) return false;
       const draft = getDraft(target);
       draft.quotes = structuredClone(saved.quotes);
+      draft.color = saved.color ?? target.color ?? "#111111";
       draft.bulk = "";
       draft.migrateFrom = key;
       markDirty(draft);
@@ -248,6 +318,28 @@ function renderStage(level) {
   details.open = draft.dirty;
   details.append(element("summary", `${level.name} · ${level.minimum}～${level.maximum}`));
   const body = element("div", undefined, "stage-content");
+  const colorRow = element("div", undefined, "stage-color-field");
+  const colorLabel = element("label", "好感度与阶段名称颜色");
+  const colorPicker = element("input");
+  colorPicker.type = "color";
+  colorPicker.id = `stage-color-${level.key}`;
+  colorPicker.value = /^#[0-9a-f]{6}$/i.test(draft.color) ? draft.color : "#111111";
+  colorLabel.htmlFor = colorPicker.id;
+  const colorText = element("input");
+  colorText.type = "text";
+  colorText.maxLength = 7;
+  colorText.value = draft.color;
+  colorText.setAttribute("aria-label", `${level.name}颜色 HEX`);
+  colorPicker.addEventListener("input", () => { draft.color = colorPicker.value; colorText.value = draft.color; colorText.removeAttribute("aria-invalid"); markDirty(draft); });
+  colorText.addEventListener("input", () => {
+    draft.color = colorText.value;
+    const valid = /^#[0-9a-f]{6}$/i.test(draft.color);
+    colorText.setAttribute("aria-invalid", String(!valid));
+    if (valid) colorPicker.value = draft.color;
+    markDirty(draft);
+  });
+  colorRow.append(colorLabel, colorPicker, colorText);
+  body.append(colorRow, element("p", "使用 #RRGGBB 格式，浅色卡片建议选择较深的文字颜色。保存后预览使用所选原色。", "muted"));
   if (changed) body.append(element("p", "阶段名称或范围已变化，原台词保留；确认保存后才重新用于抽取。", "notice"));
   if (draft.migrateFrom) body.append(element("p", `正在从 ${draft.migrateFrom} 迁移，原条目保留。`, "notice"));
   function rerender() {
@@ -315,7 +407,7 @@ function renderStage(level) {
       controls.forEach((node) => { node.disabled = true; });
       try {
         const response = await bridge.apiPost("quotes/save", {
-          key: level.key, revision: quotes.revision, quotes: draft.quotes,
+          key: level.key, revision: quotes.revision, quotes: draft.quotes, color: draft.color,
           migrate_from: draft.migrateFrom, confirm: true,
         });
         quotes.revision = response.revision;
@@ -323,8 +415,9 @@ function renderStage(level) {
         draft.dirty = false;
         draft.migrateFrom = null;
         draft.quotes = structuredClone(response.stages[level.key].quotes);
+        draft.color = response.stages[level.key].color ?? level.color ?? "#111111";
         updateDirty(); rerender();
-        return `${level.name}的台词已保存`;
+        return `${level.name}的颜色与台词已保存`;
       } finally {
         controls.forEach((node, index) => { node.disabled = disabled[index]; });
       }
@@ -342,28 +435,29 @@ function renderStage(level) {
 }
 
 function activateTab(name) {
-  for (const tab of ["images", "quotes"]) {
+  for (const tab of ["images", "quotes", "settings"]) {
     const active = tab === name;
     byId(`${tab}-tab`).setAttribute("aria-selected", String(active));
     byId(`${tab}-tab`).tabIndex = active ? 0 : -1;
     byId(`${tab}-panel`).hidden = !active;
   }
 }
-for (const name of ["images", "quotes"]) {
+const tabs = ["images", "quotes", "settings"];
+for (const name of tabs) {
   byId(`${name}-tab`).addEventListener("click", () => activateTab(name));
   byId(`${name}-tab`).addEventListener("keydown", (event) => {
     if (["ArrowLeft", "ArrowRight", "Home", "End"].includes(event.key)) {
       event.preventDefault();
-      const next = event.key === "Home" ? "images" : event.key === "End" ? "quotes" : name === "images" ? "quotes" : "images";
+      const next = event.key === "Home" ? tabs[0] : event.key === "End" ? tabs.at(-1) : tabs[(tabs.indexOf(name) + (event.key === "ArrowLeft" ? -1 : 1) + tabs.length) % tabs.length];
       activateTab(next); byId(`${next}-tab`).focus();
     }
   });
 }
 byId("preview").addEventListener("click", () => task(byId("preview"), byId("preview-error"), () => preview(), "卡片预览已更新"));
 byId("refresh").addEventListener("click", () => task(byId("refresh"), byId("upload-error"), async () => {
-  if ([...drafts.values()].some((draft) => draft.dirty) && !await confirmAction("刷新已保存数据", "刷新会放弃所有未保存台词草稿，是否继续？")) return false;
+  if (hasDirtyDrafts() && !await confirmAction("刷新已保存数据", "刷新会放弃所有未保存的配置、颜色和台词草稿，是否继续？")) return false;
   await refreshAll();
-  return "已刷新图片与阶段台词";
+  return "已刷新配置、图片与阶段设置";
 }));
 byId("upload").addEventListener("click", () => { if (!uploading && images) byId("image-files").click(); });
 byId("image-files").addEventListener("change", async (event) => {
@@ -395,12 +489,47 @@ byId("image-files").addEventListener("change", async (event) => {
     });
   } finally {
     uploading = false;
-    byId("refresh").disabled = false;
+    byId("refresh").disabled = settingsSaving;
   }
 });
 window.addEventListener("beforeunload", (event) => {
-  if ([...drafts.values()].some((draft) => draft.dirty) || uploading) { event.preventDefault(); event.returnValue = ""; }
+  if (hasDirtyDrafts() || uploading) { event.preventDefault(); event.returnValue = ""; }
 });
+
+byId("settings-form").addEventListener("submit", (event) => {
+  event.preventDefault();
+  task(byId("settings-save"), byId("settings-error"), async () => {
+    settingsSaving = true;
+    byId("refresh").disabled = true;
+    const controls = [...byId("settings-form").querySelectorAll("input,select,textarea,button")];
+    const disabled = controls.map((node) => node.disabled);
+    controls.forEach((node) => { node.disabled = true; });
+    try {
+      const response = await bridge.apiPost("settings/save", { values: settingsDraft, revision: settings.revision });
+      settings = { ...settings, ...response };
+      settingsDraft = structuredClone(response.values);
+      settingsDirty = false;
+      renderSettings();
+      byId("settings-reload").hidden = !response.requires_reload;
+      try { await refreshImages(); }
+      catch (error) { notify(`配置已保存，图片列表刷新失败：${error.message}`, "warning"); }
+      return response.requires_reload ? "配置已保存；渲染并发上限需重载插件后生效" : "插件配置已保存";
+    } finally {
+      settingsSaving = false;
+      byId("refresh").disabled = uploading;
+      controls.forEach((node, index) => { node.disabled = disabled[index]; });
+      updateDirty();
+    }
+  }).then(() => updateDirty());
+});
+byId("settings-discard").addEventListener("click", () => task(byId("settings-discard"), byId("settings-error"), async () => {
+  if (!await confirmAction("放弃配置草稿", "恢复最近读取或保存的插件配置，未保存输入会被丢弃。")) return false;
+  settingsDraft = structuredClone(settings.values);
+  settingsDirty = false;
+  renderSettings();
+  updateDirty();
+  return "已恢复插件配置";
+}).then(() => updateDirty()));
 byId("preview-image").addEventListener("error", () => {
   byId("preview-error").textContent = "预览图片加载失败，请重新预览。";
   notify("预览图片加载失败，请重新预览。", "error");

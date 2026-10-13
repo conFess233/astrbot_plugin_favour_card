@@ -9,11 +9,31 @@
         "description": "转换原生单人查询",
         "default": true
     },
+    "show_initial_favour_card": {
+        "type": "bool",
+        "description": "无记录时显示初始好感度卡片",
+        "default": true,
+        "hint": "关闭时，首次无记录查询保留原生文字；不影响独立的自动初始化开关。"
+    },
+    "auto_initialize_on_query": {
+        "type": "bool",
+        "description": "首次授权查询自动创建好感度记录",
+        "default": true,
+        "hint": "使用 Favour Ultra 的会话与原生查询初始值；仅插入缺失记录。"
+    },
+    "initialize_only_if_missing": {
+        "type": "bool",
+        "description": "初始化只创建缺失记录（保护已有好感度）",
+        "default": true,
+        "hint": "数据保护固定开启，不允许关闭；不会更新已有好感度、关系或时间。"
+    },
     "theme": {
         "type": "string",
         "description": "卡片主题",
         "default": "default",
-        "options": ["default"]
+        "options": [
+            "default"
+        ]
     },
     "character_name": {
         "type": "string",
@@ -68,13 +88,19 @@
         "type": "string",
         "description": "图片池为空时的处理",
         "default": "fallback",
-        "options": ["fallback", "hide"]
+        "options": [
+            "fallback",
+            "hide"
+        ]
     },
     "empty_quote_fallback": {
         "type": "string",
         "description": "阶段台词为空时的处理",
         "default": "hide",
-        "options": ["hide", "default"]
+        "options": [
+            "hide",
+            "default"
+        ]
     },
     "default_quote": {
         "type": "string",
