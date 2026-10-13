@@ -3,6 +3,7 @@
 DEFAULTS = {
     "enabled": True,
     "intercept_query": True,
+    "quote_source_message": True,
     "show_initial_favour_card": True,
     "auto_initialize_on_query": True,
     "initialize_only_if_missing": True,

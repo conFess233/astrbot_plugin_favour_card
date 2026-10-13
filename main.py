@@ -4,8 +4,10 @@ from pathlib import Path
 
 from astrbot.api import AstrBotConfig, logger
 from astrbot.api.event import AstrMessageEvent, filter
-from astrbot.api.message_components import Image, Plain
+from astrbot.api.message_components import Image, Plain, Reply
 from astrbot.api.star import Context, Star
+from astrbot.core.pipeline.context_utils import call_event_hook
+from astrbot.core.star.star_handler import EventType
 from astrbot.core.utils.astrbot_path import get_astrbot_plugin_data_path
 
 from .services.bridge import FavourBridge
@@ -84,6 +86,22 @@ class FavourCard(Star):
                 result.chain[:] = [Image.fromBytes(content)]
                 result.use_t2i_ = False
                 event.set_result(result)
+                message_id = getattr(event.message_obj, "message_id", None)
+                if (
+                    settings["quote_source_message"]
+                    and message_id is not None
+                    and str(message_id)
+                ):
+                    result.chain.insert(0, Reply(id=message_id))
+                else:
+                    # 4.28 会在后续装饰流程追加全局引用，直发确保关闭时不被重新引用。
+                    try:
+                        await event.send(result.derive(result.chain))
+                        await call_event_hook(event, EventType.OnAfterMessageSentEvent)
+                    except Exception:  # noqa: BLE001 -- 发送结果可能未知，禁止重复发送或文字重试。
+                        logger.exception("好感度卡片：图片发送失败，不自动重试。")
+                    finally:
+                        event.clear_result()
             self._last_error = None
         except (ValueError, TimeoutError) as exc:
             message = str(exc) or "渲染超时"

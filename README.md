@@ -83,6 +83,7 @@ python -m pip install -r requirements.txt
 | ---------------------- | ---------- | -------------------------------------------------------------------- |
 | `enabled`              | `true`     | 启用卡片功能                                                         |
 | `intercept_query`      | `true`     | 替换正常单人查询结果                                                 |
+| `quote_source_message` | `true` | 发送卡片图片时引用触发查询的源消息；关闭时图片不引用，文字回退保持原生行为 |
 | `show_initial_favour_card` | `true` | 无记录时显示初始卡片；关闭则首次查询保留原生文字 |
 | `auto_initialize_on_query` | `true` | 首次授权查询自动创建缺失记录；关闭则不写入 |
 | `initialize_only_if_missing` | `true` | 数据保护固定开启，不能关闭；不更新已有数值、关系或时间 |

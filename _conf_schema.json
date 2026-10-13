@@ -9,6 +9,12 @@
         "description": "转换原生单人查询",
         "default": true
     },
+    "quote_source_message": {
+        "type": "bool",
+        "description": "发送卡片图片时引用源消息",
+        "default": true,
+        "hint": "关闭时卡片图片不引用原消息，即使宿主开启全局引用；文字回退保持原生行为。"
+    },
     "show_initial_favour_card": {
         "type": "bool",
         "description": "无记录时显示初始好感度卡片",
