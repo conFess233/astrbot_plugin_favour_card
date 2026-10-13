@@ -10,13 +10,13 @@
 
 ## 功能
 
-| 能力       | 说明                                                                          |
-| ---------- | ----------------------------------------------------------------------------- |
-| PNG 卡片   | 960 × 600，《鸣潮》风格的单套深蓝灰模板；显示昵称、数值、等级、关系与阶段进度 |
-| 随机图片池 | 每次从启用图片中等概率抽取，图片与台词分别抽取，允许连续重复                  |
-| 人工裁剪   | 超出 384 × 600 槽位时，固定框内拖动/缩放，确认后才上传成品                    |
-| 阶段多台词 | 新增、编辑、删除、启停、排序、按行批量添加；只抽取当前阶段                    |
-| 保留原文   | 格式不符、原生拒绝、依赖停用或渲染失败时，不生成虚假结果                      |
+| 能力       | 说明                                                         |
+| ---------- | ------------------------------------------------------------ |
+| PNG 卡片   | 960 × 600，显示昵称、数值、等级、关系与阶段进度              |
+| 随机图片池 | 每次从启用图片中等概率抽取，图片与台词分别抽取，允许连续重复 |
+| 人工裁剪   | 超出 384 × 600 槽位时，固定框内拖动/缩放，确认后才上传成品   |
+| 阶段多台词 | 新增、编辑、删除、启停、排序、按行批量添加；只抽取当前阶段   |
+| 保留原文   | 格式不符、原生拒绝、依赖停用或渲染失败时，不生成虚假结果     |
 
 <a id="quick-start"></a>
 
@@ -93,7 +93,7 @@ python -m pip install -r requirements.txt
 
 ## 管理页面
 
-入口为 AstrBot 插件页 → 本插件详情 → 好感度卡片管理。仅已登录的 Dashboard 管理账户可以读写；Bot 管理员 QQ 号不等于网页管理身份，普通群成员发送图片不会自动入池。
+入口为 AstrBot 插件页 → 本插件详情 → 好感度卡片管理。目标 4.28.0 从 `pages/card-manager/index.html` 扫描页面，新增页面或升级此修复后需重载插件并刷新 Dashboard；不要直接打开本地 HTML 文件代替宿主页面。仅已登录的 Dashboard 管理账户可以读写；Bot 管理员 QQ 号不等于网页管理身份，普通群成员发送图片不会自动入池。
 
 **图片池：** 选择一张或多张静态 JPG、PNG、WebP。任一边超出槽位都会逐张打开裁剪窗口，固定 16:25 比例，拖动或方向键移动构图、滑块缩放；确认后才上传 384 × 600 PNG 成品。小图默认完整留白适配，也可主动裁剪。取消不上传，原图不保存在服务器。重复成品不会新增条目。上传后尝试展示实际卡片预览，服务不可用时保留已入池图片并提示预览失败。
 
@@ -128,7 +128,7 @@ data/plugin_data/astrbot_plugin_favour_card/
 
 - [Favour Ultra](https://github.com/nuomicici/astrbot_plugin_Favour_Ultra)：运行依赖，查询格式与阶段结构的接口依据；未复制其实现，未修改其源码或数据库。
 - [AstrBot](https://github.com/AstrBotDevs/AstrBot)：宿主，复用事件、认证 bridge 与 HTML 渲染能力；项目由官方插件模板开始开发。
-- 页面接口依据 [Plugin Views 官方指南](https://docs.astrbot.app/dev/star/guides/plugin-pages.html)，渲染依据 [HTML 转图片指南](https://docs.astrbot.app/en/dev/star/guides/html-to-pic.html)。
+- 页面入口按 [AstrBot 4.28.0 页面扫描源码](https://github.com/AstrBotDevs/AstrBot/blob/v4.28.0/astrbot/dashboard/services/plugin_page_service.py) 与 [bridge SDK](https://github.com/AstrBotDevs/AstrBot/blob/v4.28.0/astrbot/dashboard/plugin_page_bridge.js) 实现；新版 [Plugin Pages 官方指南](https://docs.astrbot.app/dev/star/guides/plugin-pages.html) 的目录命名需按宿主版本核对。渲染依据 [HTML 转图片指南](https://docs.astrbot.app/en/dev/star/guides/html-to-pic.html)。
 
 ## License
 

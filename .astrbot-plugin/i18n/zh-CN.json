@@ -1,5 +1,5 @@
 {
-  "views": {
+  "pages": {
     "card-manager": {
       "title": "好感度卡片管理",
       "description": "管理角色图片池、人工裁剪和阶段多台词。"

@@ -1,5 +1,9 @@
 # 更新记录
 
+## 未发布
+
+- 修复 AstrBot 4.28.0 无法发现管理页面的问题：使用 `pages/card-manager/`、`AstrBotPluginPage` 与 `pages.*` 国际化键。
+
 ## 1.0.0
 
 - 完善 WebUI 的可关闭通知、按钮加载状态、并发进度与首次加载骨架。

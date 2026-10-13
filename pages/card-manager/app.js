@@ -1,7 +1,7 @@
 import { openCropDialog } from "./cropper.js";
 
 const byId = (id) => document.getElementById(id);
-const bridge = window.AstrBotPluginView ?? window.AstrBotPluginPage;
+const bridge = window.AstrBotPluginPage ?? window.AstrBotPluginView;
 let images = null;
 let quotes = null;
 const drafts = new Map();

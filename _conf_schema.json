@@ -18,7 +18,7 @@
     "character_name": {
         "type": "string",
         "description": "卡片角色名称",
-        "default": "清宵",
+        "default": "角色名",
         "hint": "1～40 字。"
     },
     "image_pool_enabled": {
