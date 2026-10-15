@@ -1,17 +1,20 @@
-"""将 Favour Ultra 的授权单人查询转换为图片卡片。"""
+"""将 Favour Ultra 的授权查询转换为个人卡片和会话排行。"""
 
+import re
 from pathlib import Path
 
 from astrbot.api import AstrBotConfig, logger
 from astrbot.api.event import AstrMessageEvent, filter
-from astrbot.api.message_components import Image, Plain, Reply
+from astrbot.api.message_components import Image, Node, Nodes, Plain, Reply
 from astrbot.api.star import Context, Star
 from astrbot.core.pipeline.context_utils import call_event_hook
+from astrbot.core.star.filter.command import CommandFilter
 from astrbot.core.star.star_handler import EventType
 from astrbot.core.utils.astrbot_path import get_astrbot_plugin_data_path
 
 from .services.bridge import FavourBridge
 from .services.domain import parse_favour_result
+from .services.ranking import RankingRenderer
 from .services.renderer import CardRenderer
 from .services.settings import settings_snapshot
 from .services.storage import PoolStorage
@@ -27,6 +30,7 @@ class FavourCard(Star):
         self.bridge = FavourBridge(context)
         self.storage = PoolStorage(Path(get_astrbot_plugin_data_path()) / PLUGIN_NAME)
         self.renderer = CardRenderer(self, self.storage, self.settings())
+        self.ranking = RankingRenderer(self.renderer, self.storage, self.bridge)
         self.web = WebManager(self)
         self.web.register()
         self._ready = False
@@ -41,6 +45,75 @@ class FavourCard(Star):
         _, error = self.bridge.levels()
         if error:
             logger.warning("好感度卡片：%s", error)
+
+    @filter.event_message_type(filter.EventMessageType.ALL, priority=100)
+    async def proxy_current_favour(self, event: AstrMessageEvent):
+        """宿主已匹配命令和别名后，在原生直发图片之前接管。"""
+        handler = self.bridge.query_handler(event, "query_current_session_favour")
+        if not self._ready or handler is None:
+            return
+        settings = self.settings()
+        group_id = str(event.get_group_id() or "")
+        if not settings["enabled"] or (
+            group_id
+            and settings["allowed_groups"]
+            and group_id not in settings["allowed_groups"]
+        ):
+            return
+        instance = self.bridge.dependency().star_cls
+        if not await instance._check_query_permission(event):
+            return
+        records = await instance.db_manager.get_all_in_session(
+            instance._get_session_id(event)
+        )
+        if not records:
+            return
+        params = (event.get_extra("handlers_parsed_params", {}) or {}).get(
+            handler.handler_full_name, {}
+        )
+        message = re.sub(r"\s+", " ", event.get_message_str().strip())
+        no_page = any(
+            item.equals(message)
+            for item in handler.event_filters
+            if isinstance(item, CommandFilter)
+        )
+        page = None if no_page else params.get("page", 1)
+        # 原生命令直发，接管后必须阻止它继续发送第二份列表。
+        event.stop_event()
+        try:
+            images = await self.ranking.render_pages(
+                instance, event, records, settings, page
+            )
+        except Exception:  # noqa: BLE001 -- 渲染重试已耗尽，统一返回失败消息。
+            logger.exception("好感度排行：生成失败。")
+            await event.send(event.plain_result("图片渲染失败，请稍后重试。"))
+            return
+        chain = [Image.fromBytes(image) for image in images]
+        message_id = getattr(event.message_obj, "message_id", None)
+        if (
+            settings["quote_source_message"]
+            and message_id is not None
+            and str(message_id)
+        ):
+            chain.insert(0, Reply(id=message_id))
+        if len(images) > 1:
+            nodes = [
+                Node(
+                    uin=str(event.get_self_id()),
+                    name=settings["bot_name"],
+                    content=[image],
+                )
+                for image in chain
+                if not isinstance(image, Reply)
+            ]
+            if isinstance(chain[0], Reply):
+                nodes[0].content.insert(0, chain[0])
+            chain = [Nodes(nodes)]
+        try:
+            await event.send(event.chain_result(chain))
+            await call_event_hook(event, EventType.OnAfterMessageSentEvent)
+        except Exception:  # noqa: BLE001 -- 发送结果可能未知，不重试或补发。
+            logger.exception("好感度排行：发送失败，不自动重试。")
 
     @filter.on_decorating_result(priority=-10)
     async def decorate_query(self, event: AstrMessageEvent):

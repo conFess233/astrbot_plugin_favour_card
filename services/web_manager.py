@@ -28,6 +28,9 @@ class WebManager:
         routes = (
             ("settings/get", self.settings_get, "GET"),
             ("settings/save", self.settings_save, "POST"),
+            ("avatar/get", self.avatar_get, "GET"),
+            ("avatar/upload", self.avatar_upload, "POST"),
+            ("avatar/delete", self.avatar_delete, "POST"),
             ("images/list", self.images_list, "GET"),
             ("images/upload", self.images_upload, "POST"),
             ("images/update", self.images_update, "POST"),
@@ -134,6 +137,39 @@ class WebManager:
             },
             "theme": settings["theme"],
         }
+
+    async def avatar_get(self) -> dict:
+        settings = self.plugin.settings()
+        return {
+            "src": await asyncio.to_thread(self.storage.ranking_avatar),
+            "slot": {"width": 256, "height": 256},
+            "limits": {
+                key: settings[key] for key in ("upload_max_mb", "upload_max_pixels")
+            },
+        }
+
+    async def avatar_upload(self) -> dict:
+        settings = self.plugin.settings()
+        async with self.upload_slots:
+            upload = (await request.files()).get("file")
+            if not isinstance(upload, PluginUploadFile):
+                raise TypeError("请选择确认裁剪后的头像。")
+            try:
+                maximum = settings["upload_max_mb"] * 1024 * 1024
+                content = await upload.read(maximum + 1)
+                return {
+                    "src": await asyncio.to_thread(
+                        self.storage.save_ranking_avatar, content, maximum
+                    )
+                }
+            finally:
+                await upload.close()
+
+    async def avatar_delete(self) -> dict:
+        if (await self._payload()).get("confirm") is not True:
+            raise ValueError("请确认重置排行头像。")
+        await asyncio.to_thread(self.storage.delete_ranking_avatar)
+        return {"src": ""}
 
     async def images_upload(self) -> dict:
         settings = self.plugin.settings()

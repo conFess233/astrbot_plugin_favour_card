@@ -44,6 +44,14 @@
         <section id="orphan-section" hidden><h3>需要确认的旧阶段</h3><p class="muted">原台词完整保留。选择迁移目标后会载入草稿，确认保存才写入，旧阶段仍保留。</p><div id="orphan-list"></div></section>
       </section>
       <section id="settings-panel" class="section-card" role="tabpanel" aria-labelledby="settings-tab" hidden>
+        <section class="ranking-avatar-settings" aria-labelledby="ranking-avatar-title">
+          <h2 id="ranking-avatar-title">排行头像</h2><p class="muted">替换排行左上角的图标；独立保存，不占用角色图片池。支持方形裁剪、放大缩小及透明留白。</p>
+          <img id="ranking-avatar-preview" width="64" height="64" alt="已保存的排行头像" hidden>
+          <p id="ranking-avatar-empty" class="muted">未设置，使用默认爱心图标。</p>
+          <div class="stage-actions"><button id="ranking-avatar-upload" type="button">选择头像并裁剪</button><button id="ranking-avatar-reset" type="button" disabled>恢复默认图标</button></div>
+          <input id="ranking-avatar-file" type="file" accept="image/png,image/jpeg,image/webp" hidden>
+          <p id="ranking-avatar-error" class="error" role="alert"></p>
+        </section>
         <div class="section-heading"><div><h2>插件配置</h2><p class="muted">全部插件配置项可在此编辑，保存到 AstrBot 配置；预览使用已保存值。</p></div><span id="settings-dirty" class="badge">已保存</span></div>
         <form id="settings-form">
           <div id="settings-fields" class="settings-grid"></div>
@@ -60,7 +68,7 @@
       <h2 id="crop-title">确认图片构图</h2><p id="crop-description" class="muted"></p>
       <div class="crop-layout"><div><canvas id="crop-canvas" width="384" height="600" tabindex="0" aria-label="裁剪预览，拖动图片或使用方向键移动构图"></canvas></div><div class="crop-tools">
         <h3>原图与保留范围</h3><canvas id="source-canvas" width="320" height="220" aria-label="原图全貌与裁剪范围"></canvas>
-        <p class="muted">亮框为保留区域，暗区会被裁掉。裁剪框固定为 384 × 600，拖动图片选择主体。</p>
+        <p id="crop-overview-description" class="muted">亮框为保留区域，暗区会被裁掉。裁剪框固定为 384 × 600，拖动图片选择主体。</p>
         <label for="crop-zoom">缩放</label><input id="crop-zoom" type="range" min="1" max="4" step="0.01" value="1">
         <button id="crop-reset" type="button">重置构图</button><button id="crop-mode" type="button" hidden>主动裁剪</button>
       </div></div>

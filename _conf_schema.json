@@ -130,5 +130,23 @@
         "description": "渲染并发上限（修改后重载插件）",
         "default": 2,
         "hint": "范围 1～4，后端独立校验。"
+    },
+    "bot_name": {
+        "type": "string",
+        "description": "排行中的 Bot 名称",
+        "default": "bot",
+        "hint": "1～40 字，也用于合并转发节点名称。"
+    },
+    "ranking_page_size": {
+        "type": "int",
+        "description": "每张排行图片的最大条数",
+        "default": 80,
+        "hint": "范围 1～80；无页码发送全部，多张合并转发。"
+    },
+    "retry_count": {
+        "type": "int",
+        "description": "排行图片渲染失败后的重试次数",
+        "default": 3,
+        "hint": "范围 0～10；默认首次失败后再试 3 次，仅重试渲染，不重试发送。"
     }
 }

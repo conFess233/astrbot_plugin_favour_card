@@ -4,6 +4,9 @@ DEFAULTS = {
     "enabled": True,
     "intercept_query": True,
     "quote_source_message": True,
+    "bot_name": "bot",
+    "ranking_page_size": 80,
+    "retry_count": 3,
     "show_initial_favour_card": True,
     "auto_initialize_on_query": True,
     "initialize_only_if_missing": True,
@@ -26,6 +29,8 @@ DEFAULTS = {
 }
 SLOT = (384, 600)
 BOUNDS = {
+    "ranking_page_size": (1, 80),
+    "retry_count": (0, 10),
     "image_pool_limit": (1, 200),
     "upload_max_mb": (1, 20),
     "upload_max_pixels": (230400, 40000000),
@@ -49,11 +54,17 @@ def settings_snapshot(config: dict) -> dict:
         raise ValueError(
             "initialize_only_if_missing 必须开启，初始化不能覆盖已有记录。"
         )
-    for key, limit in (("character_name", 40), ("default_quote", 120)):
+    for key, limit in (
+        ("character_name", 40),
+        ("bot_name", 40),
+        ("default_quote", 120),
+    ):
         if not isinstance(result[key], str) or len(result[key]) > limit:
             raise ValueError(f"{key} 必须是最多 {limit} 字的文本。")
     if not result["character_name"].strip():
         raise ValueError("角色名称不能为空。")
+    if not result["bot_name"].strip():
+        raise ValueError("Bot 名称不能为空。")
     for key, choices in (
         ("theme", {"default"}),
         ("empty_image_fallback", {"fallback", "hide"}),

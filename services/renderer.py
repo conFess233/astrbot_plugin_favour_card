@@ -20,6 +20,7 @@ class CardRenderer:
         self.tasks: set[asyncio.Task] = set()
         self.closed = False
         self.template = ""
+        self.ranking_template = ""
         self.fallback = ""
 
     async def initialize(self) -> None:
@@ -33,6 +34,23 @@ class CardRenderer:
         self.fallback = "data:image/png;base64," + base64.b64encode(fallback).decode(
             "ascii"
         )
+        self.ranking_template = await asyncio.to_thread(
+            (root / "templates/ranking.html").read_text, encoding="utf-8"
+        )
+
+    async def render_ranking(self, data, settings, size) -> bytes:
+        if self.closed:
+            raise ValueError("插件正在停用，请稍后重试。")
+        task = asyncio.create_task(self._render_ranking(data, settings, size))
+        self.tasks.add(task)
+        try:
+            return await asyncio.wait_for(task, settings["render_timeout_ms"] / 1000)
+        finally:
+            self.tasks.discard(task)
+
+    async def _render_ranking(self, data, settings, size) -> bytes:
+        async with self.slots:
+            return await self._render_html(self.ranking_template, data, settings, size)
 
     def _build_data(
         self, record, levels: list, settings: dict, preview_image=None, is_preview=False
@@ -82,23 +100,26 @@ class CardRenderer:
             data = await asyncio.to_thread(
                 self._build_data, record, levels, settings, preview_image, is_preview
             )
-            # PNG 不支持 quality；覆盖宿主 JPEG 默认参数。
-            path = await self.plugin.html_render(
-                self.template,
-                data,
-                return_url=False,
-                options={
-                    "type": "png",
-                    "quality": None,
-                    "animations": "disabled",
-                    "scale": "css",
-                    "clip": {"x": 0, "y": 0, "width": 960, "height": 600},
-                    "timeout": settings["render_timeout_ms"],
-                },
-            )
-            return await asyncio.to_thread(self._read_output, Path(path))
+            return await self._render_html(self.template, data, settings, (960, 600))
 
-    def _read_output(self, path: Path) -> bytes:
+    async def _render_html(self, template, data, settings, size) -> bytes:
+        # PNG 不支持 quality；覆盖宿主 JPEG 默认参数。
+        path = await self.plugin.html_render(
+            template,
+            data,
+            return_url=False,
+            options={
+                "type": "png",
+                "quality": None,
+                "animations": "disabled",
+                "scale": "css",
+                "clip": {"x": 0, "y": 0, "width": size[0], "height": size[1]},
+                "timeout": settings["render_timeout_ms"],
+            },
+        )
+        return await asyncio.to_thread(self._read_output, Path(path), size)
+
+    def _read_output(self, path: Path, size=(960, 600)) -> bytes:
         path = path.resolve()
         root = Path(get_astrbot_temp_path()).resolve()
         if not path.is_relative_to(root):
@@ -108,8 +129,8 @@ class CardRenderer:
                 raise ValueError("渲染成品超过 8 MB，请简化图片素材。")
             content = path.read_bytes()
             with Image.open(io.BytesIO(content)) as image:
-                if image.format != "PNG" or image.size != (960, 600):
-                    raise ValueError("渲染器未返回 960 × 600 PNG。")
+                if image.format != "PNG" or image.size != size:
+                    raise ValueError(f"渲染器未返回 {size[0]} × {size[1]} PNG。")
                 image.verify()
             return content
         finally:

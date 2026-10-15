@@ -1,7 +1,7 @@
 name: astrbot_plugin_favour_card
 display_name: 好感度卡片
-desc: Favour Ultra 展示扩展：随机角色图片、人工裁剪管理与阶段多台词。
-version: 1.0.0
+desc: Favour Ultra 展示扩展：随机角色图片、人工裁剪管理、阶段多台词与会话排行。
+version: 1.1.0
 author: conFess233
 repo: https://github.com/conFess233/astrbot_plugin_favour_card
 support_platforms:

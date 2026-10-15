@@ -152,3 +152,6 @@ button.toast-close { min-height: 28px; width: 28px; padding: 0; flex-shrink: 0; 
   *, *::before, *::after { animation: none !important; transition: none !important; }
   #loading-bar::after { width: 100%; }
 }
+
+.ranking-avatar-settings { margin-bottom: 28px; padding-bottom: 20px; border-bottom: 1px solid var(--border); }
+#ranking-avatar-preview { object-fit: contain; border-radius: 50%; background: var(--surface); }

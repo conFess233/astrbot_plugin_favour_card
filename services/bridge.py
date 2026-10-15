@@ -26,11 +26,11 @@ class FavourBridge:
                 return metadata
         return None
 
-    def query_source(self, event) -> bool:
+    def query_handler(self, event, name="query_favour"):
         """复用宿主指令匹配（含前缀、别名和 @ 参数），拒绝竞争指令。"""
         metadata = self.dependency()
         if metadata is None:
-            return False
+            return None
         handlers = event.get_extra("activated_handlers", []) or []
         commands = [
             handler
@@ -38,7 +38,7 @@ class FavourBridge:
             if any(isinstance(item, CommandFilter) for item in handler.event_filters)
         ]
         if len(commands) != 1:
-            return False
+            return None
         handler = commands[0]
         bound = handler.handler
         owner = (
@@ -48,11 +48,18 @@ class FavourBridge:
         )
         # shortcut: 4.28 没有逐条结果来源标记，升级宿主提供来源后改用来源校验。
         return (
-            handler.handler_module_path == metadata.module_path
-            and handler.handler_name == "query_favour"
-            and owner is metadata.star_cls
-            and handler.enabled
+            handler
+            if (
+                handler.handler_module_path == metadata.module_path
+                and handler.handler_name == name
+                and owner is metadata.star_cls
+                and handler.enabled
+            )
+            else None
         )
+
+    def query_source(self, event) -> bool:
+        return self.query_handler(event) is not None
 
     def levels(self) -> tuple[list, str | None]:
         """每次读取运行实例的当前配置，异常只隐藏等级，不编造值。"""

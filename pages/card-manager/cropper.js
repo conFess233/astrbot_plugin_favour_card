@@ -2,7 +2,7 @@ import { placement, clampPosition, inspectImage } from "./crop-geometry.js";
 
 const byId = (id) => document.getElementById(id);
 
-export async function openCropDialog(file, slot, limits) {
+export async function openCropDialog(file, slot, limits, { allowPadding = false } = {}) {
   if (file.size > limits.upload_max_mb * 1024 * 1024) throw new Error(`原图超过 ${limits.upload_max_mb} MB，请选择较小文件。`);
   const header = inspectImage(new Uint8Array(await file.arrayBuffer()));
   if (header.animated) throw new Error("不接受动图，请先导出静态图片。");
@@ -19,16 +19,19 @@ export async function openCropDialog(file, slot, limits) {
   const options = { signal: controller.signal };
   canvas.width = slot.width;
   canvas.height = slot.height;
-  let crop = bitmap.width > slot.width || bitmap.height > slot.height;
+  let crop = allowPadding || bitmap.width > slot.width || bitmap.height > slot.height;
   let base = placement(bitmap.width, bitmap.height, slot.width, slot.height, crop);
   let state = { ...base };
   let pointer = null;
   zoom.value = "1";
+  zoom.min = allowPadding ? "0.1" : "1";
   zoom.disabled = !crop;
   confirm.disabled = false;
   byId("crop-mode").hidden = crop;
   error.textContent = "";
-  byId("crop-description").textContent = `${file.name} · ${bitmap.width} × ${bitmap.height} → ${slot.width} × ${slot.height}。${crop ? "原图超出槽位，必须手动确认裁剪。" : "默认完整留白适配，不拉伸；也可以主动裁剪。"}`;
+  byId("crop-title").textContent = allowPadding ? "确认排行头像" : "确认图片构图";
+  byId("crop-overview-description").textContent = `亮框为保留区域，裁剪框固定为 ${slot.width} × ${slot.height}。${allowPadding ? "可放大、缩小及拖动至原图之外；空白部分透明保存。" : "拖动图片选择主体。"}`;
+  byId("crop-description").textContent = `${file.name} · ${bitmap.width} × ${bitmap.height} → ${slot.width} × ${slot.height}。${allowPadding ? "支持放大、缩小与原图外透明留白，请确认头像构图。" : crop ? "原图超出槽位，必须手动确认裁剪。" : "默认完整留白适配，不拉伸；也可以主动裁剪。"}`;
   confirm.textContent = crop ? "确认裁剪并上传" : "确认留白成品并上传";
 
   function draw() {
@@ -55,7 +58,7 @@ export async function openCropDialog(file, slot, limits) {
 
   function move(dx, dy) {
     if (!crop) return;
-    Object.assign(state, clampPosition(state.x + dx, state.y + dy, bitmap.width, bitmap.height, state.scale, slot.width, slot.height));
+    Object.assign(state, allowPadding ? { x: state.x + dx, y: state.y + dy } : clampPosition(state.x + dx, state.y + dy, bitmap.width, bitmap.height, state.scale, slot.width, slot.height));
     draw();
   }
 

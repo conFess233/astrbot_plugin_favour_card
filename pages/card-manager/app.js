@@ -5,6 +5,7 @@ const bridge = window.AstrBotPluginPage ?? window.AstrBotPluginView;
 let images = null;
 let quotes = null;
 let settings = null;
+let rankingAvatar = null;
 let settingsDraft = null;
 let settingsDirty = false;
 let settingsSaving = false;
@@ -151,7 +152,7 @@ function renderSettings() {
         input.min = field.minimum;
         input.max = field.maximum;
       }
-      if (key === "character_name") { input.maxLength = 40; input.required = true; }
+      if (key === "character_name" || key === "bot_name") { input.maxLength = 40; input.required = true; }
     }
     input.id = label.htmlFor;
     input.disabled = Boolean(field.read_only);
@@ -168,22 +169,38 @@ function renderSettings() {
   }
 }
 
+function renderAvatar() {
+  const preview = byId("ranking-avatar-preview");
+  preview.hidden = !rankingAvatar?.src;
+  if (rankingAvatar?.src) preview.src = rankingAvatar.src;
+  else preview.removeAttribute("src");
+  byId("ranking-avatar-empty").hidden = Boolean(rankingAvatar?.src);
+  byId("ranking-avatar-reset").disabled = !rankingAvatar?.src || uploading;
+}
+
+async function refreshAvatar() {
+  rankingAvatar = await bridge.apiGet("avatar/get");
+  renderAvatar();
+}
+
 async function refreshAll() {
   byId("image-list").setAttribute("aria-busy", "true");
   byId("quote-list").setAttribute("aria-busy", "true");
   try {
-    const [nextImages, nextQuotes, nextSettings] = await Promise.all([
-      bridge.apiGet("images/list"), bridge.apiGet("quotes/list"), bridge.apiGet("settings/get"),
+    const [nextImages, nextQuotes, nextSettings, nextAvatar] = await Promise.all([
+      bridge.apiGet("images/list"), bridge.apiGet("quotes/list"), bridge.apiGet("settings/get"), bridge.apiGet("avatar/get"),
     ]);
     images = nextImages;
     quotes = nextQuotes;
     settings = nextSettings;
+    rankingAvatar = nextAvatar;
     settingsDraft = structuredClone(settings.values);
     settingsDirty = false;
     drafts.clear();
     renderImages();
     renderQuotes();
     renderSettings();
+    renderAvatar();
     updateDirty();
   } catch (error) {
     if (!images) byId("image-list").replaceChildren(element("p", "图片列表加载失败，请点击顶部刷新重试。", "empty-state"));
@@ -495,6 +512,38 @@ byId("image-files").addEventListener("change", async (event) => {
 window.addEventListener("beforeunload", (event) => {
   if (hasDirtyDrafts() || uploading) { event.preventDefault(); event.returnValue = ""; }
 });
+
+byId("ranking-avatar-upload").addEventListener("click", () => {
+  if (!uploading && rankingAvatar) byId("ranking-avatar-file").click();
+});
+byId("ranking-avatar-file").addEventListener("change", async (event) => {
+  const file = event.target.files[0];
+  event.target.value = "";
+  if (!file || uploading || !rankingAvatar) return;
+  uploading = true;
+  byId("refresh").disabled = true;
+  byId("ranking-avatar-reset").disabled = true;
+  try {
+    await task(byId("ranking-avatar-upload"), byId("ranking-avatar-error"), async () => {
+      const cropped = await openCropDialog(file, rankingAvatar.slot, rankingAvatar.limits, { allowPadding: true });
+      if (!cropped) return false;
+      const response = await bridge.upload("avatar/upload", cropped);
+      rankingAvatar = { ...rankingAvatar, ...response };
+      renderAvatar();
+    }, "排行头像已保存，下次查询生效");
+  } finally {
+    uploading = false;
+    byId("refresh").disabled = settingsSaving;
+    renderAvatar();
+  }
+});
+byId("ranking-avatar-reset").addEventListener("click", () => task(byId("ranking-avatar-reset"), byId("ranking-avatar-error"), async () => {
+  if (!await confirmAction("恢复默认图标", "删除已保存的排行头像，恢复爱心图标？")) return false;
+  const response = await bridge.apiPost("avatar/delete", { confirm: true });
+  rankingAvatar = { ...rankingAvatar, ...response };
+  renderAvatar();
+  return "已恢复默认图标";
+}).then(() => renderAvatar()));
 
 byId("settings-form").addEventListener("submit", (event) => {
   event.preventDefault();

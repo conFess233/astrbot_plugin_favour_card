@@ -35,7 +35,7 @@ def atomic_write(path: Path, content: bytes) -> None:
             temporary.unlink(missing_ok=True)
 
 
-def validate_cropped_image(content: bytes, max_bytes: int) -> bytes:
+def validate_cropped_image(content: bytes, max_bytes: int, size=SLOT) -> bytes:
     """校验真实格式、固定像素和单帧，并重新编码以去除元数据。"""
     if not content or len(content) > max_bytes:
         raise ValueError("成品图片为空或超过上传大小限制。")
@@ -43,8 +43,10 @@ def validate_cropped_image(content: bytes, max_bytes: int) -> bytes:
         with Image.open(io.BytesIO(content)) as image:
             if image.format not in {"PNG", "WEBP"}:
                 raise ValueError("仅接受浏览器导出的 PNG/WebP 成品。")
-            if image.size != SLOT or getattr(image, "n_frames", 1) != 1:
-                raise ValueError("成品必须是单帧 384 × 600 图片，请重新确认裁剪。")
+            if image.size != size or getattr(image, "n_frames", 1) != 1:
+                raise ValueError(
+                    f"成品必须是单帧 {size[0]} × {size[1]} 图片，请重新确认裁剪。"
+                )
             image.verify()
         with Image.open(io.BytesIO(content)) as image:
             output = io.BytesIO()
@@ -63,6 +65,26 @@ class PoolStorage:
         self.images_dir = self.root / "images"
         self.lock = threading.RLock()
         self._image_cache: dict[str, str] = {}
+
+    def ranking_avatar(self) -> str:
+        with self.lock:
+            path = self.root / "ranking_avatar.png"
+            return (
+                "data:image/png;base64,"
+                + base64.b64encode(path.read_bytes()).decode("ascii")
+                if path.is_file()
+                else ""
+            )
+
+    def save_ranking_avatar(self, content: bytes, max_bytes: int) -> str:
+        content = validate_cropped_image(content, max_bytes, (256, 256))
+        with self.lock:
+            atomic_write(self.root / "ranking_avatar.png", content)
+            return self.ranking_avatar()
+
+    def delete_ranking_avatar(self) -> None:
+        with self.lock:
+            (self.root / "ranking_avatar.png").unlink(missing_ok=True)
 
     def _load(self, filename: str, field: str) -> dict:
         path = self.root / filename
