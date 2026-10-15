@@ -100,7 +100,7 @@ class FavourCard(Star):
             nodes = [
                 Node(
                     uin=str(event.get_self_id()),
-                    name=settings["bot_name"],
+                    name=settings["character_name"],
                     content=[image],
                 )
                 for image in chain

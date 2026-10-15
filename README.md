@@ -70,7 +70,7 @@ python -m pip install -r requirements.txt
 
 独立模式读取当前会话全部记录，共享模式读取当前适配器共享记录；沿用原生查询权限，不筛选当前群成员，不统计“近 30 天活跃”。副标题标明范围与总记录数。无记录时保留原生提示，不初始化或新增排行条目。
 
-排行按实际好感度降序，同分按用户 ID 数值升序，序号连续。高亮命令发送者的已有记录，头像或实时昵称获取失败时分别使用占位图或用户 ID。阶段标签沿用管理页保存的颜色，关系另列小字并显示唯一标记。
+排行按实际好感度降序，同分按用户 ID 数值升序，序号连续。高亮命令发送者的已有记录，头像或实时昵称获取失败时分别使用占位图或用户 ID。阶段标签沿用管理页保存的颜色，关系另列小字并显示唯一标记；关系为“无”时不显示关系行。排行名称直接沿用 `character_name`，旧 `bot_name` 配置不再使用。
 
 不带页码时生成全部页面，全部渲染成功后发送；单页直接发图，多页放入一条合并转发，每个节点一张图。带页码时仅生成指定页面。图片引用遵循 `quote_source_message`，合并转发的引用放在首节点内。
 
@@ -100,17 +100,16 @@ python -m pip install -r requirements.txt
 | `enabled`              | `true`     | 启用卡片功能                                                         |
 | `intercept_query`      | `true`     | 替换正常单人查询结果                                                 |
 | `quote_source_message` | `true` | 发送卡片图片时引用触发查询的源消息；关闭时图片不引用，文字回退保持原生行为 |
-| `bot_name` | `bot` | 1～40 字，排行标题及合并转发节点名称 |
-| `ranking_page_size` | `80` | 每张 1～80 条，最多 5 列，末页按实际条数排版 |
+| `ranking_page_size` | `80` | 每张 1～80 条，每列最多 10 人，最多 8 列；末页按实际条数排版 |
 | `retry_count` | `3` | 0～10 次，排行首次渲染失败后额外重试次数；不重试发送 |
 | `show_initial_favour_card` | `true` | 无记录时显示初始卡片；关闭则首次查询保留原生文字 |
 | `auto_initialize_on_query` | `true` | 首次授权查询自动创建缺失记录；关闭则不写入 |
 | `initialize_only_if_missing` | `true` | 数据保护固定开启，不能关闭；不更新已有数值、关系或时间 |
 | `theme`                | `default`  | V1 仅此模板                                                          |
-| `character_name`       | `角色名`   | 1～40 字，角色名称                                                   |
+| `character_name`       | `角色名`   | 1～40 字，个人卡片、排行标题及合并转发节点共用名称                                                   |
 | `image_pool_enabled`   | `true`     | 使用随机图池；关闭时使用空池兜底                                     |
 | `show_user_id`         | `false`    | 显示 QQ 号                                                           |
-| `show_relationship`    | `true`     | 显示原生关系文本（包含唯一标记）                                     |
+| `show_relationship`    | `true`     | 显示原生关系文本（包含唯一标记）；“无”关系隐藏                                     |
 | `show_progress`        | `true`     | 显示阶段进度与下阶段距离                                             |
 | `enable_level_quote`   | `true`     | 显示当前阶段台词；关闭时隐藏                                         |
 | `image_pool_limit`     | `50`       | 1～200 张；降低上限不删除已有图片，仅限制新增                        |

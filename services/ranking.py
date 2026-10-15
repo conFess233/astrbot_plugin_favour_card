@@ -125,11 +125,14 @@ class RankingRenderer:
                             level["color"] = validate_color(
                                 stage.get("color", level["color"])
                             )
+                        relationship = str(record.relationship or "").strip()[:128]
+                        if relationship == "无":
+                            relationship = ""
                         return {
                             "name": str(name)[:256],
                             "avatar": avatar,
-                            "relationship": str(record.relationship or "")[:128],
-                            "unique": record.is_unique,
+                            "relationship": relationship,
+                            "unique": record.is_unique and bool(relationship),
                             "favour": record.favour,
                             "level": level,
                             "highlight": str(record.user_id)
@@ -139,11 +142,11 @@ class RankingRenderer:
                 rows = await asyncio.gather(*(row(record) for record in batch))
                 for rank, item in enumerate(rows, offset + 1):
                     item["rank"] = rank
-                columns = min(5, len(rows))
-                row_count = math.ceil(len(rows) / columns)
+                columns = math.ceil(len(rows) / 10)
+                row_count = min(10, len(rows))
                 size = (columns * 310 + 80, row_count * 46 + 190)
                 data = {
-                    "bot_name": settings["bot_name"],
+                    "character_name": settings["character_name"],
                     "header_avatar": header_avatar,
                     "scope": scope,
                     "total": len(records),

@@ -152,7 +152,7 @@ function renderSettings() {
         input.min = field.minimum;
         input.max = field.maximum;
       }
-      if (key === "character_name" || key === "bot_name") { input.maxLength = 40; input.required = true; }
+      if (key === "character_name") { input.maxLength = 40; input.required = true; }
     }
     input.id = label.htmlFor;
     input.disabled = Boolean(field.read_only);

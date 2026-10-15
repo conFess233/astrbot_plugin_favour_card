@@ -92,7 +92,7 @@
             {% endif %}
           </div>
           <div class="details">
-            {% if show_relationship %}<div class="relation">当前关系：{{ relationship | e }}</div>{% endif %}
+            {% if show_relationship and relationship and relationship | trim != "无" %}<div class="relation">当前关系：{{ relationship | e }}</div>{% endif %}
             {% if quote %}<blockquote class="quote"><div class="quote-text">“{{ quote | e }}”</div></blockquote>{% endif %}
           </div>
         </section>

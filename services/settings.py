@@ -4,7 +4,6 @@ DEFAULTS = {
     "enabled": True,
     "intercept_query": True,
     "quote_source_message": True,
-    "bot_name": "bot",
     "ranking_page_size": 80,
     "retry_count": 3,
     "show_initial_favour_card": True,
@@ -56,15 +55,12 @@ def settings_snapshot(config: dict) -> dict:
         )
     for key, limit in (
         ("character_name", 40),
-        ("bot_name", 40),
         ("default_quote", 120),
     ):
         if not isinstance(result[key], str) or len(result[key]) > limit:
             raise ValueError(f"{key} 必须是最多 {limit} 字的文本。")
     if not result["character_name"].strip():
         raise ValueError("角色名称不能为空。")
-    if not result["bot_name"].strip():
-        raise ValueError("Bot 名称不能为空。")
     for key, choices in (
         ("theme", {"default"}),
         ("empty_image_fallback", {"fallback", "hide"}),
